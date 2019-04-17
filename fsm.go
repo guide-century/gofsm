@@ -124,3 +124,7 @@ func system(c string, dot string) error {
 	return cmd.Run()
 
 }
+
+func (m *StateMachine) GetTransitions() []Transition {
+	return m.transitions
+}
