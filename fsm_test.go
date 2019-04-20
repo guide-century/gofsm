@@ -30,7 +30,7 @@ func (p *TurnstileEventProcessor) OnExit(fromState string, args []interface{}) {
 	log.Printf("转门 %d 从状态 %s 改变", t.ID, fromState)
 }
 
-func (p *TurnstileEventProcessor) Action(action string, fromState string, toState string, args []interface{}) error {
+func (p *TurnstileEventProcessor) Action(action string, fromState string, toState string, args []interface{}) (error, interface{}) {
 	t := args[0].(*Turnstile)
 	t.EventCount++
 
@@ -39,14 +39,14 @@ func (p *TurnstileEventProcessor) Action(action string, fromState string, toStat
 		t.PassCount++
 	case "check", "repeat-check": //刷卡或者投币的action
 		if t.CoinCount > 0 { // repeat-check
-			return errors.New("转门暂时故障")
+			return errors.New("转门暂时故障"), nil
 		}
 
 		t.CoinCount++
 	default: //其它action
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (p *TurnstileEventProcessor) OnEnter(toState string, args []interface{}) {
@@ -75,42 +75,42 @@ func TestFSM(t *testing.T) {
 
 	//推门
 	//没刷卡/投币不可进入
-	err := fsm.Trigger(ts.State, "Push", ts)
+	err, _ := fsm.Trigger(ts.State, "Push", ts)
 	if err != nil {
 		t.Errorf("trigger err: %v", err)
 	}
 
 	//推门
 	//没刷卡/投币不可进入
-	err = fsm.Trigger(ts.State, "Push", ts)
+	err, _ = fsm.Trigger(ts.State, "Push", ts)
 	if err != nil {
 		t.Errorf("trigger err: %v", err)
 	}
 
 	//刷卡或者投币
 	//不容易啊，终于解锁了
-	err = fsm.Trigger(ts.State, "Coin", ts)
+	err, _ = fsm.Trigger(ts.State, "Coin", ts)
 	if err != nil {
 		t.Errorf("trigger err: %v", err)
 	}
 
 	//刷卡或者投币
 	//无用的投币, 测试Action执行失败
-	err = fsm.Trigger(ts.State, "Coin", ts)
+	err, _ = fsm.Trigger(ts.State, "Coin", ts)
 	if err != nil {
 		t.Logf("trigger err: %v", err)
 	}
 
 	//推门
 	//这时才能进入，进入后闸门被锁
-	err = fsm.Trigger(ts.State, "Push", ts)
+	err, _ = fsm.Trigger(ts.State, "Push", ts)
 	if err != nil {
 		t.Errorf("trigger err: %v", err)
 	}
 
 	//推门
 	//无法进入，闸门已锁
-	err = fsm.Trigger(ts.State, "Push", ts)
+	err, _ = fsm.Trigger(ts.State, "Push", ts)
 	if err != nil {
 		t.Errorf("trigger err: %v", err)
 	}
